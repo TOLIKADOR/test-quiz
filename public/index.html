@@ -274,6 +274,31 @@
             margin-left: 10px;
         }
 
+        .category-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .category-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .points-badge {
+            background: #48bb78;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -349,11 +374,15 @@
                 <div class="progress">
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
-                <p>Question <span id="questionNumber">1</span> of <span id="totalQuestions">10</span></p>
+                <p>Question <span id="questionNumber">1</span> of <span id="totalQuestions">6</span></p>
                 
                 <div id="countdown" class="countdown" style="display: none;"></div>
                 
                 <div id="questionCard" class="question-card" style="display: none;">
+                    <div class="category-info">
+                        <span class="category-badge" id="categoryBadge"></span>
+                        <span class="points-badge" id="pointsBadge"></span>
+                    </div>
                     <div class="question-text" id="questionText"></div>
                     <div class="timer" id="timer"></div>
                     <div class="options" id="options"></div>
@@ -538,6 +567,10 @@
             document.getElementById('questionNumber').textContent = data.questionIndex;
             document.getElementById('totalQuestions').textContent = data.totalQuestions;
             document.getElementById('questionText').textContent = data.question;
+            
+            // Display category and points
+            document.getElementById('categoryBadge').textContent = data.category;
+            document.getElementById('pointsBadge').textContent = `${data.points} pts`;
             
             const optionsContainer = document.getElementById('options');
             optionsContainer.innerHTML = '';

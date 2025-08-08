@@ -23,69 +23,69 @@ app.use(express.static(path.join(__dirname, 'public')));
 const parties = new Map();
 const players = new Map();
 
-// Sample quiz questions
-const quizQuestions = [
-  {
-    id: 1,
-    question: "What is the capital of France?",
-    options: ["London", "Berlin", "Paris", "Madrid"],
-    correctAnswer: 2
+// Quiz categories and questions
+const quizCategories = {
+  geography: {
+    name: "Geography",
+    questions: [
+      {
+        id: 1,
+        question: "What is the capital of France?",
+        options: ["London", "Berlin", "Paris", "Madrid"],
+        correctAnswer: 2,
+        points: 10
+      },
+      {
+        id: 2,
+        question: "Which country is home to the kangaroo?",
+        options: ["New Zealand", "Australia", "South Africa", "India"],
+        correctAnswer: 1,
+        points: 15
+      }
+    ]
   },
-  {
-    id: 2,
-    question: "Which planet is known as the Red Planet?",
-    options: ["Venus", "Mars", "Jupiter", "Saturn"],
-    correctAnswer: 1
+  science: {
+    name: "Science",
+    questions: [
+      {
+        id: 3,
+        question: "Which planet is known as the Red Planet?",
+        options: ["Venus", "Mars", "Jupiter", "Saturn"],
+        correctAnswer: 1,
+        points: 20
+      },
+      {
+        id: 4,
+        question: "What is the chemical symbol for gold?",
+        options: ["Ag", "Au", "Fe", "Cu"],
+        correctAnswer: 1,
+        points: 25
+      }
+    ]
   },
-  {
-    id: 3,
-    question: "What is the largest ocean on Earth?",
-    options: ["Atlantic", "Indian", "Arctic", "Pacific"],
-    correctAnswer: 3
-  },
-  {
-    id: 4,
-    question: "Who painted the Mona Lisa?",
-    options: ["Van Gogh", "Da Vinci", "Picasso", "Rembrandt"],
-    correctAnswer: 1
-  },
-  {
-    id: 5,
-    question: "What is the chemical symbol for gold?",
-    options: ["Ag", "Au", "Fe", "Cu"],
-    correctAnswer: 1
-  },
-  {
-    id: 6,
-    question: "Which year did World War II end?",
-    options: ["1943", "1944", "1945", "1946"],
-    correctAnswer: 2
-  },
-  {
-    id: 7,
-    question: "What is the square root of 144?",
-    options: ["10", "11", "12", "13"],
-    correctAnswer: 2
-  },
-  {
-    id: 8,
-    question: "Which country is home to the kangaroo?",
-    options: ["New Zealand", "Australia", "South Africa", "India"],
-    correctAnswer: 1
-  },
-  {
-    id: 9,
-    question: "What is the main component of the sun?",
-    options: ["Liquid lava", "Molten iron", "Hot gases", "Solid rock"],
-    correctAnswer: 2
-  },
-  {
-    id: 10,
-    question: "How many sides does a hexagon have?",
-    options: ["5", "6", "7", "8"],
-    correctAnswer: 1
+  history: {
+    name: "History",
+    questions: [
+      {
+        id: 5,
+        question: "Which year did World War II end?",
+        options: ["1943", "1944", "1945", "1946"],
+        correctAnswer: 2,
+        points: 30
+      },
+      {
+        id: 6,
+        question: "Who painted the Mona Lisa?",
+        options: ["Van Gogh", "Da Vinci", "Picasso", "Rembrandt"],
+        correctAnswer: 1,
+        points: 35
+      }
+    ]
   }
-];
+};
+
+// Flatten questions for easy access
+const quizQuestions = Object.values(quizCategories).flatMap(category => category.questions);
 
 // Game class
 class Game {
@@ -144,10 +144,21 @@ class Game {
     this.questionStartTime = Date.now();
     this.answers.clear();
 
+    // Find the category for this question
+    let categoryName = "General";
+    for (const [key, category] of Object.entries(quizCategories)) {
+      if (category.questions.some(q => q.id === question.id)) {
+        categoryName = category.name;
+        break;
+      }
+    }
+
     // Send question to all players
     io.to(this.partyId).emit('question', {
       questionIndex: this.currentQuestionIndex + 1,
       totalQuestions: quizQuestions.length,
+      category: categoryName,
+      points: question.points,
       question: question.question,
       options: question.options,
       timeLimit: 15000 // 15 seconds
@@ -171,10 +182,10 @@ class Game {
       timeTaken: Date.now() - this.questionStartTime
     });
 
-    // Award points based on speed and correctness
+    // Award points based on question value and speed
     if (isCorrect) {
       const timeBonus = Math.max(0, 15 - Math.floor((Date.now() - this.questionStartTime) / 1000));
-      const points = 10 + timeBonus;
+      const points = question.points + timeBonus;
       this.scores.set(playerId, this.scores.get(playerId) + points);
     }
 

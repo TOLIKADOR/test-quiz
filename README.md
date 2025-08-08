@@ -7,7 +7,7 @@ A real-time multiplayer quiz game built with Node.js, Express, and Socket.io. Ch
 - **Real-time Multiplayer**: Play with friends in real-time using WebSocket connections
 - **Party System**: Create or join game parties with unique codes
 - **Live Scoring**: Real-time score tracking with speed bonuses
-- **10 Questions per Game**: Fixed set of engaging quiz questions
+- **6 Questions per Game**: 3 categories with 2 questions each, different point values
 - **Timer System**: 15-second time limit per question with visual countdown
 - **Modern UI**: Beautiful, responsive design with smooth animations
 - **Cross-platform**: Works on desktop and mobile devices
@@ -58,8 +58,10 @@ A real-time multiplayer quiz game built with Node.js, Express, and Socket.io. Ch
 ### Gameplay
 1. Both players must click "I'm Ready!" to start
 2. Answer questions within 15 seconds
-3. Faster correct answers earn bonus points
-4. After 10 questions, the winner is announced!
+3. Questions are from 3 categories: Geography, Science, and History
+4. Each question has different point values (10-35 points)
+5. Faster correct answers earn bonus points
+6. After 6 questions, the winner is announced!
 
 ## 🏗️ Architecture
 
@@ -104,21 +106,28 @@ A real-time multiplayer quiz game built with Node.js, Express, and Socket.io. Ch
 ## 🎨 Customization
 
 ### Adding New Questions
-Edit the `quizQuestions` array in `server.js`:
+Edit the `quizCategories` object in `server.js`:
 
 ```javascript
-{
-  id: 11,
-  question: "Your new question here?",
-  options: ["Option A", "Option B", "Option C", "Option D"],
-  correctAnswer: 2  // Index of correct answer (0-based)
+geography: {
+  name: "Geography",
+  questions: [
+    {
+      id: 7,
+      question: "Your new question here?",
+      options: ["Option A", "Option B", "Option C", "Option D"],
+      correctAnswer: 2,  // Index of correct answer (0-based)
+      points: 20  // Points for this question
+    }
+  ]
 }
 ```
 
 ### Modifying Game Settings
-- **Questions per game**: Change `quizQuestions.length`
+- **Questions per game**: Change the number of questions in each category
 - **Time limit**: Modify `timeLimit` in `nextQuestion()` method
-- **Scoring**: Adjust point calculation in `submitAnswer()` method
+- **Scoring**: Adjust point values in each question object
+- **Categories**: Add or modify categories in the `quizCategories` object
 
 ## 🛠️ Development
 
