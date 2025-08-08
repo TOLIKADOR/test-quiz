@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Quiz Game</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .party-code {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .waiting-room {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+
+        .player-list {
+            list-style: none;
+            margin: 20px 0;
+        }
+
+        .player-list li {
+            background: white;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .game-section {
+            text-align: center;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .question-text {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .option:hover {
+            background: #edf2f7;
+            border-color: #667eea;
+        }
+
+        .option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .option.correct {
+            background: #48bb78;
+            color: white;
+            border-color: #48bb78;
+        }
+
+        .option.incorrect {
+            background: #f56565;
+            color: white;
+            border-color: #f56565;
+        }
+
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e53e3e;
+            margin-bottom: 20px;
+        }
+
+        .progress {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .score-board {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .score-item {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .winner {
+            background: #48bb78;
+            color: white;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .countdown {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .question-text {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Main Menu -->
+        <div id="mainMenu" class="section active">
+            <h1>🎮 Quiz Battle</h1>
+            <p style="margin-bottom: 30px; color: #718096;">Challenge your friends in real-time quiz battles!</p>
+            
+            <button class="btn" onclick="showSection('createParty')">Create Party</button>
+            <button class="btn" onclick="showSection('joinParty')">Join Party</button>
+        </div>
+
+        <!-- Create Party -->
+        <div id="createParty" class="section">
+            <h1>Create New Party</h1>
+            <div class="form-group">
+                <label for="createPlayerName">Your Name:</label>
+                <input type="text" id="createPlayerName" placeholder="Enter your name" maxlength="20">
+            </div>
+            <button class="btn" onclick="createParty()">Create Party</button>
+            <button class="btn" onclick="showSection('mainMenu')">Back</button>
+        </div>
+
+        <!-- Join Party -->
+        <div id="joinParty" class="section">
+            <h1>Join Party</h1>
+            <div class="form-group">
+                <label for="joinPlayerName">Your Name:</label>
+                <input type="text" id="joinPlayerName" placeholder="Enter your name" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label for="partyCode">Party Code:</label>
+                <input type="text" id="partyCode" placeholder="Enter party code" maxlength="8">
+            </div>
+            <button class="btn" onclick="joinParty()">Join Party</button>
+            <button class="btn" onclick="showSection('mainMenu')">Back</button>
+        </div>
+
+        <!-- Waiting Room -->
+        <div id="waitingRoom" class="section">
+            <h1>Waiting Room</h1>
+            <div class="party-code">
+                Party Code: <span id="displayPartyCode"></span>
+                <button class="copy-btn" onclick="copyPartyCode()">Copy</button>
+            </div>
+            <div class="waiting-room">
+                <h3>Players:</h3>
+                <ul id="playerList" class="player-list"></ul>
+                <p id="waitingMessage">Waiting for another player...</p>
+                <button class="btn" id="readyBtn" onclick="markReady()" style="display: none;">I'm Ready!</button>
+            </div>
+            <button class="btn" onclick="leaveParty()">Leave Party</button>
+        </div>
+
+        <!-- Game Section -->
+        <div id="gameSection" class="section">
+            <div class="game-section">
+                <div class="progress">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <p>Question <span id="questionNumber">1</span> of <span id="totalQuestions">10</span></p>
+                
+                <div id="countdown" class="countdown" style="display: none;"></div>
+                
+                <div id="questionCard" class="question-card" style="display: none;">
+                    <div class="question-text" id="questionText"></div>
+                    <div class="timer" id="timer"></div>
+                    <div class="options" id="options"></div>
+                </div>
+                
+                <div id="resultCard" class="result-card" style="display: none;">
+                    <h3>Question Results</h3>
+                    <div id="questionResults"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game End -->
+        <div id="gameEnd" class="section">
+            <h1>Game Over!</h1>
+            <div id="finalResults"></div>
+            <button class="btn" onclick="backToMain()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentPartyId = null;
+        let playerName = null;
+        let questionTimer = null;
+        let countdownTimer = null;
+
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        // Create Party
+        function createParty() {
+            const name = document.getElementById('createPlayerName').value.trim();
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            playerName = name;
+            socket.emit('createParty', { playerName: name });
+        }
+
+        // Join Party
+        function joinParty() {
+            const name = document.getElementById('joinPlayerName').value.trim();
+            const code = document.getElementById('partyCode').value.trim().toUpperCase();
+            
+            if (!name || !code) {
+                alert('Please enter both your name and party code');
+                return;
+            }
+            
+            playerName = name;
+            socket.emit('joinParty', { playerName: name, partyCode: code });
+        }
+
+        // Copy party code
+        function copyPartyCode() {
+            const code = document.getElementById('displayPartyCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Party code copied to clipboard!');
+            });
+        }
+
+        // Mark ready
+        function markReady() {
+            socket.emit('playerReady');
+            document.getElementById('readyBtn').disabled = true;
+            document.getElementById('readyBtn').textContent = 'Ready!';
+        }
+
+        // Leave party
+        function leaveParty() {
+            if (currentPartyId) {
+                socket.emit('disconnect');
+                currentPartyId = null;
+                showSection('mainMenu');
+            }
+        }
+
+        // Submit answer
+        function submitAnswer(answerIndex) {
+            socket.emit('submitAnswer', { answerIndex });
+            
+            // Disable all options
+            document.querySelectorAll('.option').forEach(option => {
+                option.style.pointerEvents = 'none';
+            });
+        }
+
+        // Back to main menu
+        function backToMain() {
+            currentPartyId = null;
+            showSection('mainMenu');
+        }
+
+        // Socket event handlers
+        socket.on('partyCreated', (data) => {
+            currentPartyId = data.partyId;
+            document.getElementById('displayPartyCode').textContent = data.partyCode;
+            showSection('waitingRoom');
+            updatePlayerList([{ name: data.playerName }]);
+        });
+
+        socket.on('partyJoined', (data) => {
+            currentPartyId = data.partyId;
+            document.getElementById('displayPartyCode').textContent = data.partyId;
+            showSection('waitingRoom');
+        });
+
+        socket.on('playerJoined', (data) => {
+            updatePlayerList([{ name: data.playerName }]);
+            if (data.playerCount >= 2) {
+                document.getElementById('readyBtn').style.display = 'inline-block';
+                document.getElementById('waitingMessage').textContent = 'Both players are here! Click "I\'m Ready!" when you\'re ready to start.';
+            }
+        });
+
+        socket.on('gameStarting', (data) => {
+            showSection('gameSection');
+            startCountdown(data.countdown);
+        });
+
+        socket.on('question', (data) => {
+            displayQuestion(data);
+        });
+
+        socket.on('questionResult', (data) => {
+            displayQuestionResult(data);
+        });
+
+        socket.on('gameEnd', (data) => {
+            displayGameEnd(data);
+        });
+
+        socket.on('error', (data) => {
+            alert(data.message);
+        });
+
+        socket.on('playerLeft', (data) => {
+            updatePlayerList([]);
+            document.getElementById('waitingMessage').textContent = `${data.playerName} left the party.`;
+        });
+
+        // Update player list
+        function updatePlayerList(players) {
+            const playerList = document.getElementById('playerList');
+            playerList.innerHTML = '';
+            players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player.name;
+                playerList.appendChild(li);
+            });
+        }
+
+        // Start countdown
+        function startCountdown(count) {
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.style.display = 'block';
+            
+            const countdown = () => {
+                countdownEl.textContent = count;
+                count--;
+                
+                if (count >= 0) {
+                    setTimeout(countdown, 1000);
+                } else {
+                    countdownEl.style.display = 'none';
+                }
+            };
+            
+            countdown();
+        }
+
+        // Display question
+        function displayQuestion(data) {
+            document.getElementById('questionNumber').textContent = data.questionIndex;
+            document.getElementById('totalQuestions').textContent = data.totalQuestions;
+            document.getElementById('questionText').textContent = data.question;
+            
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            
+            data.options.forEach((option, index) => {
+                const optionEl = document.createElement('div');
+                optionEl.className = 'option';
+                optionEl.textContent = option;
+                optionEl.onclick = () => submitAnswer(index);
+                optionsContainer.appendChild(optionEl);
+            });
+            
+            document.getElementById('questionCard').style.display = 'block';
+            document.getElementById('resultCard').style.display = 'none';
+            
+            // Start timer
+            let timeLeft = data.timeLimit / 1000;
+            const timerEl = document.getElementById('timer');
+            const progressBar = document.getElementById('progressBar');
+            
+            questionTimer = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = `Time: ${timeLeft}s`;
+                progressBar.style.width = `${(timeLeft / (data.timeLimit / 1000)) * 100}%`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(questionTimer);
+                }
+            }, 1000);
+        }
+
+        // Display question result
+        function displayQuestionResult(data) {
+            clearInterval(questionTimer);
+            
+            document.getElementById('questionCard').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'block';
+            
+            const resultsContainer = document.getElementById('questionResults');
+            resultsContainer.innerHTML = '';
+            
+            data.results.forEach(result => {
+                const resultEl = document.createElement('div');
+                resultEl.className = 'score-item';
+                resultEl.innerHTML = `
+                    <span>${result.playerName}</span>
+                    <span>${result.isCorrect ? '✅ Correct' : '❌ Incorrect'} (${result.score} pts)</span>
+                `;
+                resultsContainer.appendChild(resultEl);
+            });
+        }
+
+        // Display game end
+        function displayGameEnd(data) {
+            showSection('gameEnd');
+            
+            const finalResults = document.getElementById('finalResults');
+            finalResults.innerHTML = '';
+            
+            if (data.tie) {
+                finalResults.innerHTML = '<h2>It\'s a tie! 🎉</h2>';
+            } else {
+                finalResults.innerHTML = `<h2>Winner: ${data.winnerName}! 🏆</h2>`;
+            }
+            
+            data.finalResults.forEach(result => {
+                const resultEl = document.createElement('div');
+                resultEl.className = 'score-item';
+                if (result.playerName === data.winnerName && !data.tie) {
+                    resultEl.classList.add('winner');
+                }
+                resultEl.innerHTML = `
+                    <span>${result.playerName}</span>
+                    <span>${result.score} points</span>
+                `;
+                finalResults.appendChild(resultEl);
+            });
+        }
+    </script>
+</body>
+</html>
